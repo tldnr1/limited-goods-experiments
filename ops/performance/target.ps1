@@ -144,13 +144,25 @@ try {
         Assert-Ready -WaitForScrape
     }
     $warmupConfig=@{} + $config
-    $warmupConfig.scenario='warmup'; $warmupConfig.variant='normal'; $warmupConfig.stock=400
-    $warmupConfig.users=270; $warmupConfig.durationSeconds=40; $warmupConfig.vus=40; $warmupConfig.maxVus=40
+    $warmupConfig.scenario='warmup'; $warmupConfig.variant='normal'
+    $warmupConfig.warmupStages=@(2,5,10,10 | ForEach-Object { @{rate=$_;durationSeconds=10} })
+    $warmupConfig.users=($warmupConfig.warmupStages | ForEach-Object { $_.rate*$_.durationSeconds } | Measure-Object -Sum).Sum
+    $warmupConfig.durationSeconds=($warmupConfig.warmupStages.durationSeconds | Measure-Object -Sum).Sum
+    $warmupConfig.stock=[Math]::Max(400,$warmupConfig.users+$warmupConfig.warmupStages.Count)
+    $warmupConfig.vus=40; $warmupConfig.maxVus=40; $warmupConfig.primed=$true
     $warmupConfig.rps=10; $warmupConfig.runId="$runId-warmup"
+    $warmupDirectory=if ($Scenario -eq 'warmup') {$directory} else {Join-Path $directory 'warmup'}
+    $primingConfig=@{} + $config
+    $primingConfig.scenario='priming'; $primingConfig.variant='normal'; $primingConfig.iterations=1
+    $primingConfig.stock=$primingConfig.iterations; $primingConfig.users=$primingConfig.iterations
+    $primingConfig.durationSeconds=180; $primingConfig.vus=1; $primingConfig.maxVus=1
+    $primingConfig.runId="$runId-priming"
+    $primingDirectory=Join-Path $warmupDirectory 'priming'
+    Invoke-TargetTrial $primingConfig $primingDirectory
+    Remove-TargetWarmup $primingDirectory
     if ($Scenario -eq 'warmup') {
         Invoke-TargetTrial $warmupConfig $directory
     } else {
-        $warmupDirectory=Join-Path $directory 'warmup'
         Invoke-TargetTrial $warmupConfig $warmupDirectory
         Remove-TargetWarmup $warmupDirectory
         # No up/restart/reset after this boundary. Keep all warmed JVMs running.

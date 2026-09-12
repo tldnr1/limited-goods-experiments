@@ -1,8 +1,8 @@
 . "$PSScriptRoot/target-hikari.ps1"
 
-function Wait-TargetSuccessDrain([string]$directory) {
+function Wait-TargetSuccessDrain([string]$directory,[int]$InitialDelaySeconds=30) {
     # Keep the baseline observation window, then bound SUCCESS drain by actual DB deadlines.
-    Start-Sleep -Seconds 30
+    if ($InitialDelaySeconds -gt 0) { Start-Sleep -Seconds $InitialDelaySeconds }
     $drainDeadline=$null
     do {
         if (Test-Path "$directory/observer-error.txt") { throw 'Observer failed during drain' }
@@ -19,26 +19,29 @@ function Wait-TargetSuccessDrain([string]$directory) {
     } while ($true)
 }
 
-# One warmup or measured trial; lifecycle/reset is owned by target.ps1.
+# One priming, warmup or measured trial; lifecycle/reset is owned by target.ps1.
 function Invoke-TargetTrial([hashtable]$TrialConfig,[string]$TrialDirectory) {
     $directory=$TrialDirectory
     $Scenario=$TrialConfig.scenario; $Variant=$TrialConfig.variant
     $Stock=$TrialConfig.stock; $DurationSeconds=$TrialConfig.durationSeconds
     $Rps=$TrialConfig.rps; $PaymentRps=$TrialConfig.paymentRps; $runId=$TrialConfig.runId
     $observer=$null; $loadStarted=$null; $loadExit=$null
-    $generatorName=if ($Scenario -eq 'warmup') {'goods-target-warmup-k6'} else {'goods-target-k6'}
+    $generatorName=if ($Scenario -in @('priming','warmup')) {'goods-target-warmup-k6'} else {'goods-target-k6'}
     New-Item -ItemType Directory -Force $directory | Out-Null
     Save-Json $TrialConfig "$directory/config.json"
     Copy-Item (Join-Path $root 'k6/target') -Destination "$directory/scripts" -Recurse
     try {
     Save-Json (Invoke-Docker (@('inspect')+@($ids.Values)) | ConvertFrom-Json) "$directory/before-containers.json"
-    if ($Scenario -ne 'warmup') {
-        $warmed=@(Get-Content "$directory/warmup/after-containers.json" -Raw | ConvertFrom-Json)
+    $previous=if ($Scenario -eq 'warmup' -and $TrialConfig.primed) {"$directory/priming"}
+        elseif ($Scenario -notin @('priming','warmup')) {"$directory/warmup"} else {$null}
+    if ($previous) {
+        if (-not (Test-Path "$previous/cleanup-completed.txt")) { throw 'Preparation cleanup missing; next trial prohibited' }
+        $warmed=@(Get-Content "$previous/after-containers.json" -Raw | ConvertFrom-Json)
         $current=@(Get-Content "$directory/before-containers.json" -Raw | ConvertFrom-Json)
         foreach ($prior in $warmed) {
             $same=@($current | Where-Object Id -eq $prior.Id)
             if ($same.Count -ne 1 -or $same[0].RestartCount -ne $prior.RestartCount -or $same[0].State.StartedAt -ne $prior.State.StartedAt) {
-                throw 'Container restarted/replaced after warmup; steady-state measurement prohibited'
+                throw 'Container restarted/replaced after preparation; next trial prohibited'
             }
         }
     }
@@ -83,7 +86,7 @@ COMMIT;
         & $ObserverPath @ObserverParameters
     } -ArgumentList "$PSScriptRoot/target-observe.ps1",@{
         Directory=$directory;Postgres=$ids.postgres;Redis=$ids.redis;Containers=@($ids.Values)
-        IntervalSeconds=$(if ($Scenario -in @('business','warmup')) { 1 } else { 5 });GeneratorName=$generatorName
+        IntervalSeconds=$(if ($Scenario -in @('business','warmup','priming')) { 1 } else { 5 });GeneratorName=$generatorName
     }
     for ($i=0;$i -lt 20 -and -not (Test-Path "$directory/observer-ready");$i++) {
         if ($observer.State -eq 'Failed' -or (Test-Path "$directory/observer-error.txt")) { throw 'Observer startup failed' }
@@ -104,11 +107,12 @@ COMMIT;
     $loadExit=$LASTEXITCODE
     Set-Content "$directory/k6-exit.txt" $loadExit
     $loadFinished=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-    $drainReason=Wait-TargetSuccessDrain $directory
+    $drainReason=if ($Scenario -eq 'priming') { Wait-TargetSuccessDrain $directory -InitialDelaySeconds 0 } else { Wait-TargetSuccessDrain $directory }
     Save-TargetHikariBoundary "$directory/boundary-after.json"
     $match=Select-String -Path "$directory/k6.log" -Pattern 'TARGET_MEASUREMENT_START=(\d+)' | Select-Object -First 1
     if (-not $match) { throw 'k6 measurement boundary missing' }
     $measurementStart=[double]$match.Matches[0].Groups[1].Value / 1000
+    if ($Scenario -eq 'priming') { $DurationSeconds=$loadFinished-$measurementStart }
     Save-Json @{observationStart=$observationStart;measurementStart=$measurementStart;saleStart=$([DateTimeOffset]::Parse($sale.opensAt).ToUnixTimeMilliseconds()/1000);arrivalEnd=$measurementStart+$(if ($Scenario -eq 'business') { if ($Variant -eq 'abandon') {360} else {60} } else {$DurationSeconds});drainReason=$drainReason;loadFinished=$loadFinished;drainEnd=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();status='collected'} "$directory/phases.json"
     } catch {
         $_ | Out-String | Set-Content "$directory/error.txt"

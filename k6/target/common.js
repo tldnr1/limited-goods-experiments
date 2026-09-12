@@ -72,7 +72,7 @@ function request(method, path, body, user, key, name, ticket) {
   const headers = { 'Content-Type': 'application/json', 'X-User-Id': user, 'Idempotency-Key': key };
   if (ticket) headers['X-Admission-Ticket'] = ticket;
   const response = http.request(method, (name.startsWith('waiting_') ? waitingUrl : checkoutUrl) + path,
-    body ? JSON.stringify(body) : null, { headers, timeout: '5s', tags: { name }, responseCallback: http.expectedStatuses(200, 201, 202, 404, 409, 429) });
+    body ? JSON.stringify(body) : null, { headers, timeout: config.scenario === 'priming' ? '15s' : '5s', tags: { name }, responseCallback: http.expectedStatuses(200, 201, 202, 404, 409, 429) });
   let value = {};
   try { value = response.json() || {}; } catch (_) { /* A network/upstream failure has no JSON body. */ }
   const known409 = ['SOLD_OUT', 'TEMPORARILY_UNAVAILABLE', 'ADMISSION_EXPIRED', 'HOLD_EXPIRED', 'USER_LIMIT_EXCEEDED'];
@@ -176,7 +176,7 @@ export function browser(purchase = false, pay = false, timing = {}) {
         sleep(Math.max(0, (Date.parse(order.holdExpiresAt) - Date.now()) / 1000 - 1));
       } else if (config.variant === 'burst') {
         sleep(Math.max(0, 60 - (Date.now() - timing.startedAt) / 1000));
-      } else if (!returning && config.scenario !== 'warmup') {
+      } else if (!returning && !['priming', 'warmup'].includes(config.scenario)) {
         sleep(1 + behavior * 44);
       }
       const pg = config.variant === 'pg-failure'

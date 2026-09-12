@@ -24,10 +24,13 @@ try {
         $normal=$config.variant -eq 'normal' -and $config.mockPgDelayMs -eq 0
         Require ($null -ne $config.mockPgDelayMs) 'Missing MockPgDelayMs environment evidence'
         $warmup=$config.scenario -eq 'warmup'
+        $priming=$config.scenario -eq 'priming'
+        $preparation=$warmup -or $priming
         $requiredThresholds=@{dropped_iterations='count==0'}
-        if ($warmup) { $requiredThresholds.target_unexpected='rate==0' }
+        if ($priming) { $requiredThresholds.Remove('dropped_iterations') }
+        if ($preparation) { $requiredThresholds.target_unexpected='rate==0' }
         elseif ($normal) { $requiredThresholds.target_unexpected='rate<=0.001' }
-        if ($normal -and -not $warmup) {
+        if ($normal -and -not $preparation) {
             if ($config.scenario -in @('worker','isolation','business')) {
                 $requiredThresholds.target_payment_accepted_ms='p(95)<=1000'
                 $requiredThresholds['target_unexpected{endpoint:payment_accept}']='rate==0'
@@ -40,7 +43,7 @@ try {
                 }
             }
         }
-        if ($config.scenario -in @('warmup','worker','isolation')) { $requiredThresholds.target_payment_rejected='rate==0' }
+        if ($config.scenario -in @('priming','warmup','worker','isolation')) { $requiredThresholds.target_payment_rejected='rate==0' }
         if ($config.scenario -eq 'business' -and $config.variant -ne 'late-payment') { $requiredThresholds.target_payment_rejected='rate==0' }
         foreach ($entry in $requiredThresholds.GetEnumerator()) {
             Require ($summary.metrics.($entry.Key).thresholds.($entry.Value).ok -eq $true) "Missing/failed threshold: $($entry.Key): $($entry.Value)"
@@ -53,31 +56,41 @@ try {
         $started=$summary.metrics.target_started.values.count
         $finished=$summary.metrics.target_finished.values.count
         Require ($null -ne $started -and $started -gt 0 -and $started -eq $finished) 'Missing/interrupted browser/payment iterations'
-        $expected=if ($warmup) {270} elseif ($config.scenario -eq 'business') { $config.users+$(if ($config.variant -eq 'abandon') {$config.stock} else {0}) }
+        $expected=if ($priming) {$config.iterations} elseif ($warmup) {
+            if ($config.warmupStages) { ($config.warmupStages | ForEach-Object { $_.rate*$_.durationSeconds } | Measure-Object -Sum).Sum }
+            else { $config.users } # Historical artifacts recorded planned users before stages were saved.
+        } elseif ($config.scenario -eq 'business') { $config.users+$(if ($config.variant -eq 'abandon') {$config.stock} else {0}) }
             elseif ($config.scenario -eq 'isolation') { ($config.rps+$config.paymentRps)*$config.durationSeconds }
             else { $config.rps*$config.durationSeconds }
         # constant-arrival-rate can include one extra arrival at each scenario boundary.
         # Retain the lower bound and dropped=0; never hide missing work behind a percentage tolerance.
-        $tolerance=if ($warmup) {4} elseif ($config.scenario -eq 'business') {if ($config.variant -eq 'abandon') {4} else {3}} elseif ($config.scenario -eq 'isolation') {2} else {1}
+        $tolerance=if ($priming) {0} elseif ($warmup) {if ($config.warmupStages) {@($config.warmupStages).Count} else {4}}
+            elseif ($config.scenario -eq 'business') {if ($config.variant -eq 'abandon') {4} else {3}} elseif ($config.scenario -eq 'isolation') {2} else {1}
+        Require ($null -ne $expected -and $expected -gt 0) 'Missing configured arrival count'
         Require ($started -ge $expected -and $started -le $expected+$tolerance) "Actual arrivals differ from configured workload: expected=$expected..$($expected+$tolerance), started=$started"
         $held=$summary.metrics.target_held.values.count
         $accepted=$summary.metrics.target_payment_accepted.values.count
-        if ($config.scenario -in @('warmup','worker','isolation')) {
+        if ($config.scenario -in @('priming','warmup','worker','isolation')) {
             Require ($accepted -gt 0) 'No payment acceptance observed by client'
             Require ($state.confirmed -eq $accepted -and $state.succeeded -eq $accepted) "HTTP/DB payment count mismatch: accepted=$accepted, confirmed=$($state.confirmed), succeeded=$($state.succeeded). Check response loss/retries."
             Require ($state.pending -eq 0 -and $state.failed -eq 0) 'Payment attempts remain pending or failed after drain'
         }
-        if ($config.scenario -in @('warmup','reservation','business')) { Require ($held -gt 0 -and $state.orders -eq $held) 'No purchases or HTTP/DB order count mismatch' }
+        if ($config.scenario -in @('priming','warmup','reservation','business')) { Require ($held -gt 0 -and $state.orders -eq $held) 'No purchases or HTTP/DB order count mismatch' }
         Require ($null -ne $state.successAccepted -and $null -ne $state.successConfirmed -and $null -ne $state.successPending) 'Missing SUCCESS deadline state'
         Require ($state.successPending -eq 0) 'SUCCESS pending remains after bounded drain'
         Require ($state.successAccepted -eq $state.successConfirmed) 'Accepted SUCCESS did not become CONFIRMED'
-        if ($warmup) {
-            Require ($held -eq $started -and $accepted -eq $started -and $state.orders -eq $started -and $state.attempts -eq $started -and $state.confirmed -eq $started) "Warmup must durably confirm every actual arrival: started=$started, held=$held, accepted=$accepted, orders=$($state.orders), attempts=$($state.attempts), confirmed=$($state.confirmed)"
-            Require (Test-Path "$Directory/raw.json") 'Missing cold-start warmup raw evidence'
+        if ($preparation) {
+            Require ($held -eq $started -and $accepted -eq $started -and $state.orders -eq $started -and $state.attempts -eq $started -and $state.confirmed -eq $started) "Preparation must durably confirm every actual arrival: started=$started, held=$held, accepted=$accepted, orders=$($state.orders), attempts=$($state.attempts), confirmed=$($state.confirmed)"
+            Require (Test-Path "$Directory/raw.json") 'Missing preparation raw evidence'
+        }
+        if ($warmup -and $config.primed) {
+            Require (Test-Path "$Directory/priming/cleanup-completed.txt") 'Priming cleanup missing'
+            $prime=Read-Json 'priming/result.json'
+            Require ($prime.status -eq 'passed') 'Priming failed; warmup cannot pass'
         }
         if ($config.scenario -eq 'waiting') { Require ($state.orders -eq 0 -and $state.attempts -eq 0) 'Waiting created durable orders/payments' }
         $samples=@(Get-Content "$Directory/db-samples.jsonl" | ForEach-Object { $_ | ConvertFrom-Json })
-        Require ($samples.Count -ge 2) 'Insufficient DB samples'
+        Require ($samples.Count -ge $(if ($priming) {1} else {2})) 'Insufficient DB samples'
         foreach ($sample in $samples) {
             foreach ($field in @('inventoryViolations','userLimitViolations','holdViolations','duplicateSuccess','waitingDbConnections','successDeadlineViolations','terminalEvidenceMissing')) { Require ($null -ne $sample.$field -and $sample.$field -eq 0) "Observed/missing $field at $($sample.at)" }
         }
@@ -145,6 +158,6 @@ try {
 $review.Add('Inspect per-endpoint/status p95/p99, 429/503, READY versus actual purchase rate, Redis latency/CPU, DB lock/Hikari and generator resources.')
 $review.Add('Sustained capacity needs stable backlog/age within the supply window and 3 independent trials; drain alone is insufficient. Worker contract is SUCCESS confirmation deadlines and recovering backlog, not fixed jobs/s.')
 $review.Add('For return/late/PG scenarios inspect timeline and state samples. Sampled projection timing is not an exact release-event timestamp; do not certify <=5s from coarse samples.')
-$result=@{status=$(if ($issues.Count) {'failed'} elseif ($config.scenario -eq 'warmup') {'passed'} else {'requires_review'});automatedChecksPassed=($issues.Count -eq 0);issues=@($issues);capacity=$capacity;saleAlignmentSeconds=$alignment;warmupWindows=$warmupWindows;manualReview=@($review)}
+$result=@{status=$(if ($issues.Count) {'failed'} elseif ($config.scenario -in @('priming','warmup')) {'passed'} else {'requires_review'});automatedChecksPassed=($issues.Count -eq 0);issues=@($issues);capacity=$capacity;saleAlignmentSeconds=$alignment;warmupWindows=$warmupWindows;manualReview=@($review)}
 $result | ConvertTo-Json -Depth 10 | Set-Content "$Directory/result.json"
 $result | ConvertTo-Json -Depth 10

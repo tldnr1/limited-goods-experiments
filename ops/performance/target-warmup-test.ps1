@@ -63,6 +63,10 @@ try {
     $orchestrate=[scriptblock]::Create($text.Substring($from,$to-$from))
     function Invoke-TargetTrial($TrialConfig,$TrialDirectory) {
         $calls.Add($TrialConfig.scenario)
+        if ($TrialConfig.scenario -eq 'priming') {
+            Assert ($TrialConfig.iterations -eq 1 -and $TrialConfig.vus -eq 1) 'Priming must be one serial transaction'
+            if ($failPriming) { throw 'priming failed' }
+        }
         if ($TrialConfig.scenario -eq 'warmup') {
             Assert ($TrialConfig.stock -eq 400 -and $TrialConfig.users -eq 270 -and $TrialConfig.vus -eq 40) 'Wrong fixed warmup config'
             if ($failWarmup) { throw 'warmup failed' }
@@ -70,14 +74,17 @@ try {
     }
     function Remove-TargetWarmup($path) { $calls.Add('cleanup') }
     $config=@{stock=1000;users=50000;vus=100;scenario='worker'}; $runId='offline'
-    $Scenario='worker'; $failWarmup=$false; $calls.Clear(); & $orchestrate
-    Assert (($calls -join ',') -eq 'warmup,cleanup,worker') 'Embedded warmup ordering changed'
+    $Scenario='worker'; $failWarmup=$false; $failPriming=$false; $calls.Clear(); & $orchestrate
+    Assert (($calls -join ',') -eq 'priming,cleanup,warmup,cleanup,worker') 'Embedded warmup ordering changed'
     $failWarmup=$true; $calls.Clear(); $caught=$null
     try { & $orchestrate } catch { $caught=$_ }
-    Assert ($caught -and ($calls -join ',') -eq 'warmup') 'Warmup failure reached measurement'
+    Assert ($caught -and ($calls -join ',') -eq 'priming,cleanup,warmup') 'Warmup failure reached measurement'
     $Scenario='warmup'; $failWarmup=$false; $calls.Clear(); & $orchestrate
-    Assert (($calls -join ',') -eq 'warmup') 'Standalone warmup recursively warmed up'
-    '16 offline warmup/cleanup/drain checks passed.'
+    Assert (($calls -join ',') -eq 'priming,cleanup,warmup') 'Standalone warmup ordering changed'
+    $failPriming=$true; $calls.Clear(); $caught=$null
+    try { & $orchestrate } catch { $caught=$_ }
+    Assert ($caught -and ($calls -join ',') -eq 'priming') 'Priming failure reached cleanup/warmup'
+    'Offline priming/warmup/cleanup/drain checks passed.'
 } finally {
     $resolved=[IO.Path]::GetFullPath($directory)
     if ($resolved.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -match '^target-warmup-[a-f0-9]{32}$') {

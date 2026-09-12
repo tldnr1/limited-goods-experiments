@@ -142,7 +142,7 @@ try {
         Verify $(if ($count -eq 2402) {'requires_review'} else {'failed'})
     }
     # Warmup validates safety/durability, not capacity latency. Accumulated stable counters are allowed.
-    Json @{scenario='warmup';variant='normal';mockPgDelayMs=0} 'config.json'
+    Json @{scenario='warmup';variant='normal';mockPgDelayMs=0;users=270} 'config.json'
     foreach ($name in @('target_started','target_finished','target_payment_accepted','target_held')) { $metrics[$name]=@{values=@{count=270}} }
     $metrics=@{target_started=$metrics.target_started;target_finished=$metrics.target_finished;target_payment_accepted=$metrics.target_payment_accepted;
         target_held=$metrics.target_held;target_unexpected=@{thresholds=@{'rate==0'=@{ok=$true}}};

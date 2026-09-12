@@ -2,7 +2,13 @@
 
 ## 현재 Target v1 검증 방향
 
-최신 실행은 [2026-09-12 첫 Warmup](reviews/warmup-20260912-review.md)이다. 실제 272회 도착·완료,
+2026-09-13 변경: 정상 거래 한 건을 별도 priming으로 실행·확정·정리한 뒤 기존 2→5→10→10/s warmup을 수행한다.
+CPU/pool/JIT는 유지하며 사전 실행 유무의 비교가 목적이다. 원본은 priming/에 분리하고,
+완료/cleanup은 실제 시작 수와 영속 상태를 대조한다. 변경 후 실제 실행은 아직 하지 않았다.
+Git Bash 명령은 [Stage 0 실행 가이드](guides/target-v1-load-guide.md#stage-0과-embedded-warmup)를 따른다.
+
+최신 실행은 `20260912-223508-886-target-warmup-normal`이며 실제 시작 273건, 확정 262건, Payment Hikari timeout 13건으로 실패했다.
+이전 [2026-09-12 첫 Warmup](reviews/warmup-20260912-review.md)은 실제 272회 도착·완료,
 dropped=0이었으나 Payment Hikari timeout 18건과 결제 오류로 실패했다. 고정 270건 판정과 cleanup은
 실제 시작 수 기준으로 수정했으며, 수정 후 재실행 및 warmup PASS 이후 steady-state 성능 검증은 대기 중이다.
 도착 수는 각 constant-arrival-rate 시나리오의 추가 1회만 허용하고 실제 시작 수 전체의 영속 완료를 요구한다.

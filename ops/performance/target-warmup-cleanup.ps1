@@ -1,4 +1,4 @@
-# Called only after a successful, fully collected warmup, before any measured fixture.
+# Called only after successful, fully collected priming/warmup, before the next fixture.
 function Remove-TargetWarmup([string]$WarmupDirectory) {
     $result=Get-Content "$WarmupDirectory/result.json" -Raw | ConvertFrom-Json
     if ($result.status -ne 'passed') { throw 'Warmup validation failed; cleanup/measurement prohibited' }

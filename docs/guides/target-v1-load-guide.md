@@ -2,7 +2,8 @@
 
 이 문서는 **사용자가 실행할 Target 전용 절차**다. 과거 cold Worker와 첫 단계형 Warmup을 실제 실행했으며,
 [2026-09-12 Warmup](../reviews/warmup-20260912-review.md)은 Payment 초기 오류로 실패했다.
-건수 판정 수정 후 동일 조건 재실행, embedded warmup 통과 후 측정, 성능 목표 달성 및 실제 300초 반환 시험은 아직 대기 중이다.
+두 번째 실행 `20260912-223508-886-target-warmup-normal`도 Payment Hikari timeout 13건으로 실패했다.
+현재는 정상 거래 한 건의 사전 실행(priming)을 추가한 비교 조건이며, 실제 재실행과 성능 목표 달성은 미검증이다.
 과거 baseline 명령은 [load-test-guide](load-test-guide.md), 시나리오 그림은 [아키텍처 위의 부하 흐름](../architecture/target-v1-load-scenario.md)을 본다.
 
 ## 1. 실행 경계
@@ -14,7 +15,7 @@
 |---|---|---|
 | Check (기본) | Target profile, perf DB/Redis namespace, rate/permit, health, Prometheus 6개 target 확인 | 읽기 전용. 초기화·기동·HTTP 시나리오 없음 |
 | Prepare | bootJar/image 빌드, 앱 중단, 기존 health 의존 순서로 한 번 기동, 준비 검사 | **데이터 초기화 없음**. 최초 DB의 Flyway는 앱 기동 중 적용. 부하 없음 |
-| Run | 비어 있는 perf DB 확인, warmup/Validation·정리 후 fixture/관측·선택 k6 실행, deadline 기반 drain, 결과 저장 | **실제 부하**. 내부에서 Prepare나 다른 시나리오를 실행하지 않음 |
+| Run | 비어 있는 perf DB 확인, priming·정리 → warmup/Validation·정리 → 선택한 본 측정·drain·결과 저장 | **실제 부하**. Prepare나 다음 성능 단계로 자동 이동하지 않음 |
 | Run -Reset | 사전 검사, 앱 중단, 이전 DB 상태 보존, perf 초기화, 기존 이미지로 한 번 기동한 뒤 Run | **기존 perf 데이터/namespace 삭제 + 실제 부하**. 재빌드·이미지 pull 없음 |
 
 기존 dev/baseline 앱과 dev/test DB 연결이 있으면 준비를 거절한다. 다른 터미널의 Gradle test도 종료한 뒤 실행한다.
@@ -65,7 +66,7 @@ Prepare/Check/Run의 `WaitingRate`, `ReservationRate`, `Permits`는 일치해야
   Waiting 2개는 Redis, Payment는 PostgreSQL·Reservation, Worker는 PostgreSQL·Mock PG·Reservation을 기다린다.
   Public Nginx는 Waiting 2개, Checkout Nginx는 Reservation·Payment·Worker health 뒤 기동한다.
 - Run -Reset: 설정·이미지·실행 충돌 검사 → 앱 8개 중단 → 이전 DB 상태 보존 → 공통 reset의 `-AppsStopped`로 초기화
-  → `up --no-build --pull never --wait` 1회 → 준비 검사 → warmup/Validation → evidence 보존·정리 → fixture → 관측·부하·drain·수집.
+  → `up --no-build --pull never --wait` 1회 → 준비 검사 → priming·정리 → warmup/Validation → evidence 보존·정리 → fixture → 관측·부하·drain·수집.
   PostgreSQL·Redis·Prometheus는 명시적으로 중단하지 않는다. 초기화 실패 시 재기동/부하로 넘어가지 않는다.
 - `-AppsStopped`는 중단 검사를 생략하지 않는다. 앱이 남아 있으면 삭제를 거절하고, 이미 멈춘 앱에 stop을 중복 호출하지 않는다.
 
@@ -77,14 +78,36 @@ Cold-start 결과도 deployment/startup characteristic으로 보존하고 steady
 
 ### Stage 0과 embedded warmup
 
-`-Scenario warmup`은 2/s×10초 → 5/s×10초 → 10/s×10초 → 10/s×10초의 계획상 신규 사용자 270명을 실행한다.
+모든 Target Run은 **정상 거래 한 건을 먼저 실행**한다. `priming.js`는 shared-iterations/VU 1로
+Waiting→READY→purchase→SUCCESS 202를 실행하고, harness가 Worker→Mock PG→CONFIRMED를 DB에서 확인한다.
+이 한 건은 JIT 최적화 완료 기준이 아니라 첫 실행 비용을 미리 처리하는 최소 비교 조건이다.
+Business think time은 없으며 priming HTTP timeout만 15초다. 기존 warmup/본 측정의 5초 client timeout,
+서버 Hikari 1초·PG timeout·70초 confirmation 계약과 CPU/memory/pool/JIT 설정은 유지한다.
+priming k6 실행은 최대 180초로 제한하고, 이후 실제 결제 deadline까지 drain한다. priming에는 기존 고정 30초 drain 대기를 추가하지 않는다.
+오류·미확정·증거 누락이면 정리와 다음 부하를 중단한다. 모든 주문/시도의 정상 완료를 확인한 뒤 사전 거래 데이터를 정리한다.
+
+그다음 `-Scenario warmup`은 기존과 같은 2/s×10초 → 5/s×10초 → 10/s×10초 → 10/s×10초의 부하를 실행한다.
+단계는 config.json의 warmupStages에 저장하며 계획 사용자 수와 기간은 여기서 계산한다(현재 계획상 270명).
+부하 모양을 유지해 이전 실패와 사전 거래 추가 후의 결과를 비교한다.
 각 구간 preAllocatedVUs=maxVUs=40, warmup stock=400이며 측정용 Stock/Vus와 분리한다.
 실제 Waiting→READY→purchase→HELD 직후 SUCCESS 202→Worker→Mock PG→CONFIRMED 경로를 검증한다.
 Business think time은 적용하지 않는다. Stage 0 앞에 embedded warmup을 중복 실행하지 않는다.
 
-`pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario warmup`
+```bash
+cd /d/Code/limited-goods-reservation
+# 기존 Target perf 서비스가 준비돼 있다면 바로 실행. 스크립트 변경만이므로 재빌드 불필요.
+# 재기동/perf 초기화 → 사전 거래/확정/정리 → 기존 40초 warmup → 결과 수집까지 자동 수행.
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario warmup
 
-도착 수 검사는 constant-arrival-rate 시나리오별 종료 경계의 추가 1회를 허용한다. Warmup은 270~274회,
+# 위 결과를 검토한 뒤 사용자가 별도로 실행할 다음 측정.
+# 이 명령도 사전 거래와 warmup을 자동 수행하므로 수동 API 호출은 필요 없다.
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario worker -Rps 10 -DurationSeconds 120 -Vus 10 -MaxVus 50
+```
+
+환경이 중단되었거나 준비 검사에 실패하면 기존 `-Mode target -Action Prepare`로 복구한 뒤 실행한다.
+각 명령은 1회만 실행하며 성공 여부를 보고 사용자가 다음 명령을 선택한다.
+
+도착 수 검사는 constant-arrival-rate 시나리오별 종료 경계의 추가 1회를 허용한다. Warmup은 단계 설정에서 계산한 계획 수~계획 수+단계 수(현재 270~274회),
 Business는 계획 수+0~3회(abandon은 +0~4회), Isolation은 +0~2회, 단일 시나리오는 +0~1회다.
 계획보다 적은 도착이나 dropped는 허용하지 않는다. PASS는 실제 시작 수=완료 수=구매 수=결제 접수 수=DB 주문·시도·CONFIRMED 수,
 dropped/unexpected/Hikari timeout delta/restart/OOM/불변식 위반=0, pending=0 및 SUCCESS deadline 위반=0이다.
@@ -96,6 +119,13 @@ before/after-db, timeline, before/after-containers, prometheus, phases, result�
 Hikari timeout은 warmup과 본 측정 각각의 boundary-before/after snapshot delta로 검사하고,
 process start/restart는 각 trial의 Prometheus window에서 별도로 확인한다.
 실패·수집 누락 시 정리/본 측정으로 진행하지 않는다. 독립 Stage 0은 결과 폴더 자체에 같은 파일을 저장한다.
+
+사전 거래 자료는 Stage 0의 `priming/`, 다른 Run의 `warmup/priming/`에 독립 저장한다.
+같은 형식의 config/HTTP/raw/DB/timeline/Prometheus/Hikari 경계/result와 cleanup 완료 증거를 남긴다.
+priming 한 건은 warmup·본 측정의 시작/접수/DB 건수와 지연 통계에 합산하지 않는다.
+priming의 k6-summary/phases/timeline에서 첫 HTTP 지연·실행 시간·확정 시간을 확인하고,
+기존 두 번째 실행과 새 warmup의 Hikari timeout, Payment 500/timeout, 실제 시작 대비 확정 수를 비교한다.
+priming부터 warmup 및 본 측정까지 컨테이너 교체/재시작을 금지한다. 준비 과정의 시간도 비용으로 보고한다.
 
 Embedded warmup PASS 후 sale 한정 FK 순서 삭제 → goods:perf:* Redis 정리 → 측정 fixture 생성 순서다.
 Catalog publisher의 shared transaction advisory lock과 cleanup의 exclusive lock(74190321)이 이전 projection 완료를 기다려 재발행 race를 막는다.

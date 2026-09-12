@@ -14,6 +14,7 @@ async function harness(stage, overrides = {}, responses = [], shared = { arrays:
   const sleeps = [];
   const metrics = {};
   const config = { runId: 'offline', scenario: stage, variant: 'normal', rps: 40, paymentRps: 40,
+    iterations: 1, warmupStages: [2, 5, 10, 10].map(rate => ({ rate, durationSeconds: 10 })),
     mockPgDelayMs: 0, durationSeconds: 60, stock: 1000, users: 50000, vus: 100, maxVus: 2000, seed: 20260911, ...overrides };
   const fixture = { sale: { id: 'sale', opensAt: new Date(now + (overrides.saleOpenDelayMs || 0)).toISOString(), items: [{ id: 'item' }] } };
   const orders = ['worker', 'isolation'].includes(stage)
@@ -197,6 +198,17 @@ for (const stage of ['warmup', 'worker', 'waiting', 'reservation', 'isolation', 
   assert.deepEqual(phases.map(phase => phase.startTime), ['0s', '5s', '15s']);
   const summary = h.module.handleSummary({ metrics: {} });
   assert.ok(summary['/results/k6-summary.json']);
+  passed++;
+}
+{
+  const h = await harness('priming', {}, [joined(), ready(), held(), paid()]);
+  assert.equal(h.module.options.scenarios.priming.executor, 'shared-iterations');
+  assert.equal(h.module.options.scenarios.priming.vus, 1);
+  assert.equal(h.module.options.scenarios.priming.iterations, h.config.iterations);
+  h.module.buyPay(h.module.setup());
+  assert.equal(h.calls.length, 4);
+  assert.ok(h.calls.every(call => call.params.timeout === '15s'));
+  assert.equal(h.sleeps.length, 1, 'Priming has no business think time');
   passed++;
 }
 {
