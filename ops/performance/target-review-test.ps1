@@ -200,6 +200,38 @@ try {
     if (($latest.issues -like '*Actual arrivals differ*') -or
         -not ($latest.issues -like '*every actual arrival*') -or
         -not ($latest.issues -like '*Hikari timeout boundary delta*')) { throw 'Observed 272-arrival failure was misclassified' }
+    # Join-only: all registrations must be accepted; no poll metric or durable work is expected.
+    Boundary 0 'boundary-after.json' 1800000061
+    Json @{scenario='waiting-join';variant='normal';mockPgDelayMs=0;rps=100;durationSeconds=60} 'config.json'
+    $metrics=@{
+        target_started=@{values=@{count=6000}};target_finished=@{values=@{count=6000}}
+        target_join_accepted=@{values=@{count=6000}}
+        target_join_rejected=@{thresholds=@{'rate==0'=@{ok=$true}}}
+        target_unexpected=@{thresholds=@{'rate<=0.001'=@{ok=$true}}}
+        'target_unexpected{endpoint:waiting_join}'=@{thresholds=@{'rate==0'=@{ok=$true}}}
+        'target_latency{endpoint:waiting_join}'=@{thresholds=@{'p(99)<=1000'=@{ok=$true}}}
+        dropped_iterations=@{thresholds=@{'count==0'=@{ok=$true}}}
+    }
+    foreach ($field in @('orders','attempts','confirmed','succeeded','successAccepted','successConfirmed')) { $state[$field]=0 }
+    Json $state 'after-db.json'; Json @{metrics=$metrics} 'k6-summary.json'
+    Verify 'requires_review'
+    $metrics.target_join_rejected.thresholds.'rate==0'.ok=$false
+    Json @{metrics=$metrics} 'k6-summary.json'; Verify 'failed' # Fast 429 is not a successful join.
+    $metrics.target_join_rejected.thresholds.'rate==0'.ok=$true
+    $metrics.target_join_accepted.values.count=5999
+    Json @{metrics=$metrics} 'k6-summary.json'; Verify 'failed'
+    $metrics.Remove('target_join_accepted')
+    Json @{metrics=$metrics} 'k6-summary.json'; Verify 'failed'
+    $metrics.target_join_accepted=@{values=@{count=6000}}
+    $metrics.dropped_iterations.thresholds.'count==0'.ok=$false
+    Json @{metrics=$metrics} 'k6-summary.json'; Verify 'failed'
+    $metrics.dropped_iterations.thresholds.'count==0'.ok=$true
+    foreach ($name in @('target_started','target_finished','target_join_accepted')) { $metrics[$name].values.count=5999 }
+    Json @{metrics=$metrics} 'k6-summary.json'; Verify 'failed'
+    foreach ($name in @('target_started','target_finished','target_join_accepted')) { $metrics[$name].values.count=6001 }
+    Json @{metrics=$metrics} 'k6-summary.json'; Verify 'requires_review'
+    $state.orders=1; Json $state 'after-db.json'; Verify 'failed'
+    $state.orders=0; Json $state 'after-db.json'
     Remove-Item -LiteralPath "$directory/prometheus.json"
     Verify 'failed'
     "$checks offline result-review checks passed."

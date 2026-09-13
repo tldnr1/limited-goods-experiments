@@ -1,5 +1,13 @@
 . "$PSScriptRoot/target-hikari.ps1"
 
+function Get-TargetScriptPath([string]$Scenario) {
+    switch ($Scenario) {
+        'waiting' { 'waiting-v2/unused-ready.js' }
+        'waiting-join' { 'waiting-v2/join.js' }
+        default { "$Scenario.js" }
+    }
+}
+
 function Wait-TargetSuccessDrain([string]$directory,[int]$InitialDelaySeconds=30) {
     # Keep the baseline observation window, then bound SUCCESS drain by actual DB deadlines.
     if ($InitialDelaySeconds -gt 0) { Start-Sleep -Seconds $InitialDelaySeconds }
@@ -23,6 +31,8 @@ function Wait-TargetSuccessDrain([string]$directory,[int]$InitialDelaySeconds=30
 function Invoke-TargetTrial([hashtable]$TrialConfig,[string]$TrialDirectory) {
     $directory=$TrialDirectory
     $Scenario=$TrialConfig.scenario; $Variant=$TrialConfig.variant
+    $scriptPath=Get-TargetScriptPath $Scenario
+    $TrialConfig.scriptPath=$scriptPath
     $Stock=$TrialConfig.stock; $DurationSeconds=$TrialConfig.durationSeconds
     $Rps=$TrialConfig.rps; $PaymentRps=$TrialConfig.paymentRps; $runId=$TrialConfig.runId
     $observer=$null; $loadStarted=$null; $loadExit=$null
@@ -101,7 +111,7 @@ COMMIT;
         '--mount',"type=bind,source=$directory/scripts,target=/scripts,readonly",
         '--mount',"type=bind,source=$directory,target=/results",
         '-e','TARGET_CONFIG=/results/config.json','-e','TARGET_FIXTURE=/results/fixture.json','-e','TARGET_ORDERS=/results/orders.json',
-        'grafana/k6:0.54.0','run','--out','json=/results/raw.json',"/scripts/$Scenario.js")
+        'grafana/k6:0.54.0','run','--out','json=/results/raw.json',"/scripts/$scriptPath")
     Write-Output "실제 부하: $Scenario / $Variant. 자동 상승/재실행 없음. 결과: $directory"
     & docker @arguments 2>&1 | Tee-Object "$directory/k6.log"
     $loadExit=$LASTEXITCODE

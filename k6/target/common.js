@@ -30,6 +30,8 @@ const accepted = new Counter('target_payment_accepted');
 const unexpected = new Rate('target_unexpected');
 const paymentFailures = new Rate('target_payment_rejected');
 const purchaseFailures = new Rate('target_purchase_rejected');
+const joinAccepted = new Counter('target_join_accepted');
+const joinFailures = new Rate('target_join_rejected');
 const latency = new Trend('target_latency', true);
 const acceptedLatency = new Trend('target_purchase_accepted_ms', true);
 const paymentLatency = new Trend('target_payment_ms', true);
@@ -111,6 +113,20 @@ export function existingPayment() {
   started.add(1);
   if (index >= orders.length) throw new Error('Payment fixture exhausted');
   payment(orders[index], index);
+  finished.add(1);
+}
+
+// Diagnostic only: one new user, one registration, no retries/poll/purchase.
+export function joinOnly() {
+  const index = exec.scenario.iterationInTest;
+  const user = `${config.runId}-${exec.scenario.name}-${index}`;
+  const body = { saleId: fixture.sale.id, items: [{ saleItemId: fixture.sale.items[0].id, quantity: 1 }] };
+  started.add(1);
+  const join = request('POST', '/api/admissions', body, user, 'purchase', 'waiting_join');
+  const accepted = join.response.status === 202 && join.value.state === 'WAITING' &&
+    typeof join.value.id === 'string' && join.value.id.length > 0;
+  joinAccepted.add(accepted ? 1 : 0);
+  joinFailures.add(!accepted);
   finished.add(1);
 }
 

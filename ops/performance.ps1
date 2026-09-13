@@ -2,7 +2,7 @@
 param(
     [ValidateSet('Check','Prepare','Run')][string]$Action = 'Check',
     [ValidateSet('baseline','gate','target')][string]$Mode = 'baseline',
-    [ValidateSet('purchase-spike','capacity','warmup','worker','waiting','reservation','isolation','business')][string]$Scenario = 'purchase-spike',
+    [ValidateSet('purchase-spike','capacity','warmup','worker','waiting','waiting-join','reservation','isolation','business')][string]$Scenario = 'purchase-spike',
     [int]$OpeningRps = 0,
     [int]$TailRps = 0,
     [int]$Rps = 0,

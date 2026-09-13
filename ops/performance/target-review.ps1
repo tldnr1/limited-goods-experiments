@@ -36,13 +36,15 @@ try {
                 $requiredThresholds['target_unexpected{endpoint:payment_accept}']='rate==0'
             }
             if ($config.scenario -in @('reservation','business')) { $requiredThresholds.target_purchase_accepted_ms='p(99)<=1000' }
-            if ($config.scenario -in @('waiting','business')) {
-                foreach ($endpoint in @('waiting_join','waiting_poll')) {
+            if ($config.scenario -in @('waiting','waiting-join','business')) {
+                $endpoints=if ($config.scenario -eq 'waiting-join') {@('waiting_join')} else {@('waiting_join','waiting_poll')}
+                foreach ($endpoint in $endpoints) {
                     $requiredThresholds["target_latency{endpoint:$endpoint}"]='p(99)<=1000'
                     $requiredThresholds["target_unexpected{endpoint:$endpoint}"]='rate==0'
                 }
             }
         }
+        if ($config.scenario -eq 'waiting-join') { $requiredThresholds.target_join_rejected='rate==0' }
         if ($config.scenario -in @('priming','warmup','worker','isolation')) { $requiredThresholds.target_payment_rejected='rate==0' }
         if ($config.scenario -eq 'business' -and $config.variant -ne 'late-payment') { $requiredThresholds.target_payment_rejected='rate==0' }
         foreach ($entry in $requiredThresholds.GetEnumerator()) {
@@ -56,6 +58,9 @@ try {
         $started=$summary.metrics.target_started.values.count
         $finished=$summary.metrics.target_finished.values.count
         Require ($null -ne $started -and $started -gt 0 -and $started -eq $finished) 'Missing/interrupted browser/payment iterations'
+        if ($config.scenario -eq 'waiting-join') {
+            Require ($summary.metrics.target_join_accepted.values.count -eq $started) 'Join-only must accept every actual arrival'
+        }
         $expected=if ($priming) {$config.iterations} elseif ($warmup) {
             if ($config.warmupStages) { ($config.warmupStages | ForEach-Object { $_.rate*$_.durationSeconds } | Measure-Object -Sum).Sum }
             else { $config.users } # Historical artifacts recorded planned users before stages were saved.
@@ -88,7 +93,7 @@ try {
             $prime=Read-Json 'priming/result.json'
             Require ($prime.status -eq 'passed') 'Priming failed; warmup cannot pass'
         }
-        if ($config.scenario -eq 'waiting') { Require ($state.orders -eq 0 -and $state.attempts -eq 0) 'Waiting created durable orders/payments' }
+        if ($config.scenario -in @('waiting','waiting-join')) { Require ($state.orders -eq 0 -and $state.attempts -eq 0) 'Waiting created durable orders/payments' }
         $samples=@(Get-Content "$Directory/db-samples.jsonl" | ForEach-Object { $_ | ConvertFrom-Json })
         Require ($samples.Count -ge $(if ($priming) {1} else {2})) 'Insufficient DB samples'
         foreach ($sample in $samples) {

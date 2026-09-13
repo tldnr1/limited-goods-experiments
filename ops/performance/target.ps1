@@ -1,7 +1,7 @@
 #requires -Version 7.0
 param(
     [ValidateSet('Check','Prepare','Run')][string]$Action='Check',
-    [ValidateSet('warmup','worker','waiting','reservation','isolation','business')][string]$Scenario='worker',
+    [ValidateSet('warmup','worker','waiting','waiting-join','reservation','isolation','business')][string]$Scenario='worker',
     [ValidateSet('normal','burst','late-payment','abandon','retry','pg-failure')][string]$Variant='normal',
     [int]$Rps=0,[int]$DurationSeconds=60,[int]$Stock=1000,[int]$Users=50000,[int]$PaymentRps=40,
     [int]$Vus=100,[int]$MaxVus=2000,[int]$WaitingRate=25,[int]$ReservationRate=25,[int]$Permits=8,

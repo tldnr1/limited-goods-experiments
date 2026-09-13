@@ -91,7 +91,9 @@ async function harness(stage, overrides = {}, responses = [], shared = { arrays:
     await module.link((specifier, parent) => load(specifier.startsWith('.') ? path.resolve(path.dirname(parent.identifier), specifier) : specifier));
     return module;
   }
-  const module = await load(path.join(root, 'k6/target', `${stage}.js`));
+  const script = stage === 'waiting-join' ? 'waiting-v2/join.js' :
+    stage === 'waiting-direct' ? 'waiting-v2/unused-ready.js' : `${stage}.js`;
+  const module = await load(path.join(root, 'k6/target', script));
   await module.evaluate();
   return { module: module.namespace, common: cache.get(path.join(root, 'k6/target/common.js')).namespace,
     config, calls, sleeps, metrics, execution, responses };
@@ -117,7 +119,7 @@ const paid = () => ({ status: 202, value: { id: 'attempt' } });
   passed++;
 }
 
-for (const stage of ['warmup', 'worker', 'waiting', 'reservation', 'isolation', 'business']) {
+for (const stage of ['warmup', 'worker', 'waiting', 'waiting-direct', 'waiting-join', 'reservation', 'isolation', 'business']) {
   const h = await harness(stage);
   assert.ok(h.module.options.scenarios);
   assert.equal(h.calls.length, 0, 'Import must not send HTTP');
@@ -132,12 +134,35 @@ for (const stage of ['warmup', 'worker', 'waiting', 'reservation', 'isolation', 
   assert.equal(h.metrics.target_payment_accepted.length, 1);
   passed++;
 }
-{
-  const h = await harness('waiting', {}, [joined(), ready()]);
+for (const stage of ['waiting', 'waiting-direct']) {
+  const h = await harness(stage, {}, [joined(), ready()]);
   h.module.joinPoll();
   assert.equal(h.calls.length, 2);
   assert.ok(h.calls.every(call => call.url.startsWith('http://nginx/api/admissions')));
   assert.ok(h.sleeps[0] >= 1 && h.sleeps[0] <= 1.25);
+  assert.equal(h.metrics.target_ready.length, 1);
+  assert.equal(h.metrics.target_held.length, 0, 'Unused READY must not turn into a purchase');
+  assert.ok(h.module.options.summaryTrendStats.includes('p(99)'));
+  passed++;
+}
+for (const response of [joined(), { status: 429, value: {} }, { status: 502, value: {} },
+  { status: 503, value: {} }, { status: 0, value: {} },
+  { status: 202, value: {} }, { status: 202, value: { state: 'READY', id: 'wrong-state' } }]) {
+  const h = await harness('waiting-join', {}, [response]);
+  h.execution.scenario.iterationInTest = 7;
+  h.module.join();
+  assert.equal(h.calls.length, 1, 'Join-only must not retry or poll, including on failure');
+  assert.equal(h.calls[0].method, 'POST');
+  assert.equal(h.calls[0].url, 'http://nginx/api/admissions');
+  assert.equal(h.calls[0].params.headers['X-User-Id'], 'offline-waiting-join-7');
+  assert.equal(h.sleeps.length, 0);
+  const accepted = response.status === 202 && response.value.state === 'WAITING';
+  assert.equal(h.metrics.target_join_accepted[0].value, accepted ? 1 : 0);
+  assert.equal(h.metrics.target_join_rejected[0].value, !accepted);
+  assert.equal(h.metrics.target_started[0].value, 1);
+  assert.equal(h.metrics.target_finished[0].value, 1);
+  assert.equal(h.module.options.thresholds.target_join_rejected[0], 'rate==0');
+  assert.ok(!Object.keys(h.module.options.thresholds).some(key => key.includes('waiting_poll')));
   passed++;
 }
 {
@@ -249,7 +274,7 @@ for (const variant of ['normal', 'burst', 'late-payment', 'abandon', 'retry', 'p
   assert.equal(h.sleeps[0], 30);
   passed++;
 }
-for (const stage of ['worker', 'isolation', 'waiting', 'reservation']) {
+for (const stage of ['worker', 'isolation', 'waiting', 'waiting-join', 'reservation']) {
   const normal = await harness(stage);
   const delay = await harness(stage, {mockPgDelayMs: 200});
   assert.ok(Object.keys(normal.module.options.thresholds).some(key => key.includes('latency') || key.endsWith('_ms')));

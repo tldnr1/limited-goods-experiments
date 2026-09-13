@@ -69,6 +69,17 @@ try {
     $expectedRate=37
     & (Join-Path $PSScriptRoot '../performance.ps1') -Mode target -Action Check -WaitingRate 37 | Out-Null
     $expectedRate=25
+    & (Join-Path $PSScriptRoot '../performance.ps1') -Mode target -Action Check -Scenario waiting-join | Out-Null
+    # Pure path resolution only; never invoke a trial. Snapshot copying must retain nested imports.
+    . (Join-Path $PSScriptRoot 'target-trial.ps1')
+    foreach ($entry in @{waiting='waiting-v2/unused-ready.js';'waiting-join'='waiting-v2/join.js';reservation='reservation.js';warmup='warmup.js';priming='priming.js'}.GetEnumerator()) {
+        $scriptPath=Get-TargetScriptPath $entry.Key
+        Assert ($scriptPath -eq $entry.Value) "Wrong script route: $($entry.Key)"
+        Assert (Test-Path (Join-Path $root "k6/target/$scriptPath")) "Missing routed script: $scriptPath"
+    }
+    $trialText=Get-Content (Join-Path $PSScriptRoot 'target-trial.ps1') -Raw
+    Assert ($trialText.Contains('Copy-Item (Join-Path $root ''k6/target'') -Destination "$directory/scripts" -Recurse')) 'Artifact copy no longer preserves the script tree'
+    Assert ($trialText.Contains('"/scripts/$scriptPath"')) 'Docker bypasses script routing'
     $expectedDelay=200
     & (Join-Path $PSScriptRoot '../performance.ps1') -Mode target -Action Check -Scenario warmup -MockPgDelayMs 200 | Out-Null
     Check-Fails 'MOCK_PG_DELAY_MS=0'
@@ -87,7 +98,7 @@ try {
     $caught=$null
     try { & $target -Action Check -Permits 0 | Out-Null } catch { $caught=$_ }
     Assert ($caught -and $calls.Count -eq 0) 'Invalid settings reached Docker'
-    '10 offline command checks passed (mocked Docker/HTTP; no Prepare, Run, or real sleeps).'
+    'Offline command and nested-script routing checks passed (mocked Docker/HTTP; no Prepare, Run, or real sleeps).'
 } finally {
     [Environment]::SetEnvironmentVariable('DB_NAME',$savedDb,'Process')
     Assert ((Get-Location).Path -eq $startLocation) 'Caller location changed'
