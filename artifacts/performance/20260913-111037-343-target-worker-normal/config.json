@@ -1,0 +1,18 @@
+{
+  "scenario": "worker",
+  "stock": 1000,
+  "users": 50000,
+  "vus": 10,
+  "seed": 20260911,
+  "permits": 8,
+  "mockPgDelayMs": 0,
+  "waitingRate": 25,
+  "maxVus": 50,
+  "paymentRps": 40,
+  "reservationRate": 25,
+  "durationSeconds": 120,
+  "reset": true,
+  "runId": "f58dbfc728de47c389da5bd1602f3b56",
+  "variant": "normal",
+  "rps": 10
+}

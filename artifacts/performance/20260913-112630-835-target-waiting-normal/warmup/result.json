@@ -1,0 +1,57 @@
+{
+  "automatedChecksPassed": true,
+  "warmupWindows": [
+    {
+      "p99": 44.559896,
+      "stage": "warmup_3",
+      "backlog": [
+        {
+          "at": "2026-09-13T11:29:45.75273+09:00",
+          "pending": 0,
+          "oldestPendingSeconds": 0
+        },
+        {
+          "at": "2026-09-13T11:29:51.34381+09:00",
+          "pending": 1,
+          "oldestPendingSeconds": 0.092316
+        }
+      ],
+      "p95": 15.985468,
+      "httpSamples": 463
+    },
+    {
+      "p99": 78.77741,
+      "stage": "warmup_4",
+      "backlog": [
+        {
+          "at": "2026-09-13T11:29:56.904332+09:00",
+          "pending": 2,
+          "oldestPendingSeconds": 0.166497
+        },
+        {
+          "at": "2026-09-13T11:30:02.512589+09:00",
+          "pending": 0,
+          "oldestPendingSeconds": 0
+        }
+      ],
+      "p95": 18.387628,
+      "httpSamples": 466
+    }
+  ],
+  "saleAlignmentSeconds": null,
+  "manualReview": [
+    "Inspect per-endpoint/status p95/p99, 429/503, READY versus actual purchase rate, Redis latency/CPU, DB lock/Hikari and generator resources.",
+    "Sustained capacity needs stable backlog/age within the supply window and 3 independent trials; drain alone is insufficient. Worker contract is SUCCESS confirmation deadlines and recovering backlog, not fixed jobs/s.",
+    "For return/late/PG scenarios inspect timeline and state samples. Sampled projection timing is not an exact release-event timestamp; do not certify <=5s from coarse samples."
+  ],
+  "capacity": {
+    "acceptedPerSecond": 6.996910313276089,
+    "backlogSlope": 0.0,
+    "maxPending": 2.0,
+    "maxOldestSeconds": 0.186811,
+    "confirmedPerSecond": 6.996910313276089,
+    "sampleSeconds": 33.586253
+  },
+  "status": "passed",
+  "issues": []
+}

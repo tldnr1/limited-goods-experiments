@@ -1,0 +1,10 @@
+{
+  "status": "collected",
+  "drainReason": "all_success_terminal",
+  "saleStart": 1789234124,
+  "measurementStart": 1789266542.922,
+  "drainEnd": 1789266552,
+  "loadFinished": 1789266550,
+  "observationStart": 1789266538,
+  "arrivalEnd": 1789266550.0
+}

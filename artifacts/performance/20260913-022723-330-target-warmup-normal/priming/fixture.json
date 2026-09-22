@@ -1,0 +1,19 @@
+{
+  "sale": {
+    "id": "7ab3a0c7-c273-48c8-88bd-5bdf79bb35ad",
+    "name": "target-42270a5ef804420aa21b1fd53cf2203b-priming",
+    "opensAt": "2026-09-12T17:29:40.575531700Z",
+    "items": [
+      {
+        "id": "938540ee-7fca-4121-9b29-6e01b5043fc5",
+        "name": "goods",
+        "price": 10000,
+        "perUserLimit": 1,
+        "total": 1,
+        "available": 1,
+        "held": 0,
+        "sold": 0
+      }
+    ]
+  }
+}

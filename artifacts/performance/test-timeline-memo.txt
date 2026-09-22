@@ -1,0 +1,31 @@
+# 09-12 warmup에 사전 거래 단건을 흘려 JVM 준비 단계를 추가하는 수정 이후 진행한 내용 기록
+
+## warm up
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario warmup
+> 문제 없음
+
+## worker
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario worker -Rps 10 -DurationSeconds 120 -Vus 10 -MaxVus 50
+> 문제 없음
+
+## waiting
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario waiting -Rps 100 -DurationSeconds 60 -Vus 200 -MaxVus 20000
+> 09.13: request timeout 폭주함
+
+
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario waiting -Variant abandon -Rps 100 -DurationSeconds 60 -Vus 200 -MaxVus 20000
+
+
+
+## reservation (with waiting input)
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Prepare -WaitingRate 100 -ReservationRate 100
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario reservation -Rps 40 -Stock 3000 -WaitingRate 100 -ReservationRate 100
+
+
+## isolation (with waiting input)
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Prepare -WaitingRate 25 -ReservationRate 25
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario isolation -Rps 100 -PaymentRps 40 -Vus 200 -MaxVus 20000
+
+
+## business (with normal variant)
+pwsh -NoProfile -File ./ops/performance.ps1 -Mode target -Action Run -Reset -Scenario business -Variant normal -Users 50000 -Stock 1000 -Vus 1000 -MaxVus 50000

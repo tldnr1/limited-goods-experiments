@@ -3,7 +3,8 @@
 이 문서는 **사용자가 실행할 Target 전용 절차**다. 과거 cold Worker와 첫 단계형 Warmup을 실제 실행했으며,
 [2026-09-12 Warmup](../reviews/warmup-20260912-review.md)은 Payment 초기 오류로 실패했다.
 두 번째 실행 `20260912-223508-886-target-warmup-normal`도 Payment Hikari timeout 13건으로 실패했다.
-현재는 정상 거래 한 건의 사전 실행(priming)을 추가한 비교 조건이며, 실제 재실행과 성능 목표 달성은 미검증이다.
+정상 거래 한 건의 사전 실행(priming)을 추가한 [2026-09-13 비교](../reviews/warmup-20260913-review.md)는
+272/272 확정·Payment Hikari timeout 0으로 통과했다. 다음은 Worker 측정이며 steady-state 성능 목표 달성은 미검증이다.
 과거 baseline 명령은 [load-test-guide](load-test-guide.md), 시나리오 그림은 [아키텍처 위의 부하 흐름](../architecture/target-v1-load-scenario.md)을 본다.
 
 ## 1. 실행 경계

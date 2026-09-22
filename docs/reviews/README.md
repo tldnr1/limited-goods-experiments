@@ -5,6 +5,7 @@
 
 | 실행 / 범위 | 분석 | 해석 |
 |---|---|---|
+| 2026-09-13 Target Warmup | [사전 거래 비교](warmup-20260913-review.md) | 사전 거래 1건 후 272/272 확정, Hikari timeout 13→0. 다음은 Worker 측정 |
 | 2026-09-12 Target Warmup | [첫 Warmup 분석](warmup-20260912-review.md) | 272회 도착, Payment 초기 오류. 건수 판정 수정과 서비스 실패 분리 |
 | 2026-09-11 cold Worker | [실행 분석](../../artifacts/target-v1/20260911-worker-diagnosis/review.md) | old SLO/no warmup. 새 steady-state capacity 결과 아님 |
 | 2026-09-11 observer 실패 | [실패 artifact 안내](../../artifacts/performance/README.md) | k6 시작 전 경로 오류, 서비스 성능 결과 아님 |

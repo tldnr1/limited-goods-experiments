@@ -1,0 +1,19 @@
+{
+  "permits": 8,
+  "scenario": "waiting",
+  "durationSeconds": 60,
+  "stock": 1000,
+  "reservationRate": 25,
+  "rps": 25,
+  "variant": "normal",
+  "waitingRate": 25,
+  "runId": "305176d2a5bb4e9ab59d8e95297a333d",
+  "reset": true,
+  "scriptPath": "waiting-v2/unused-ready.js",
+  "seed": 20260911,
+  "mockPgDelayMs": 0,
+  "users": 50000,
+  "paymentRps": 40,
+  "maxVus": 2000,
+  "vus": 1600
+}

@@ -1,0 +1,37 @@
+{
+  "warmupStages": [
+    {
+      "rate": 2,
+      "durationSeconds": 10
+    },
+    {
+      "rate": 5,
+      "durationSeconds": 10
+    },
+    {
+      "rate": 10,
+      "durationSeconds": 10
+    },
+    {
+      "rate": 10,
+      "durationSeconds": 10
+    }
+  ],
+  "scenario": "warmup",
+  "stock": 400,
+  "users": 270.0,
+  "vus": 40,
+  "seed": 20260911,
+  "primed": true,
+  "permits": 8,
+  "mockPgDelayMs": 0,
+  "waitingRate": 25,
+  "maxVus": 40,
+  "paymentRps": 40,
+  "reservationRate": 25,
+  "durationSeconds": 40.0,
+  "reset": true,
+  "runId": "f58dbfc728de47c389da5bd1602f3b56-warmup",
+  "variant": "normal",
+  "rps": 10
+}

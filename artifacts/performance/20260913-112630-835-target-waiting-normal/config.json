@@ -1,0 +1,18 @@
+{
+  "vus": 200,
+  "maxVus": 20000,
+  "waitingRate": 25,
+  "seed": 20260911,
+  "users": 50000,
+  "rps": 100,
+  "reservationRate": 25,
+  "permits": 8,
+  "stock": 1000,
+  "durationSeconds": 60,
+  "mockPgDelayMs": 0,
+  "runId": "a8143ac93e164e25a46e7b89526fa804",
+  "variant": "normal",
+  "paymentRps": 40,
+  "reset": true,
+  "scenario": "waiting"
+}

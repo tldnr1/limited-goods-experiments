@@ -1,0 +1,31 @@
+{
+  "metric": "hikaricp_connections_timeout_total",
+  "timestamp": 1789234295.093,
+  "series": [
+    {
+      "pool": "HikariPool-1",
+      "value": 0.0,
+      "instance": "mock-pg:8080",
+      "scrapedAt": 1789234294.341
+    },
+    {
+      "pool": "HikariPool-1",
+      "value": 0.0,
+      "instance": "reservation:8080",
+      "scrapedAt": 1789234294.556
+    },
+    {
+      "pool": "HikariPool-1",
+      "value": 0.0,
+      "instance": "worker:8080",
+      "scrapedAt": 1789234295.004
+    },
+    {
+      "pool": "HikariPool-1",
+      "value": 0.0,
+      "instance": "payment:8080",
+      "scrapedAt": 1789234295.06
+    }
+  ],
+  "boundaryRequestedAt": 1789234294.075
+}

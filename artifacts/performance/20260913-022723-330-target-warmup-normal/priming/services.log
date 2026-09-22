@@ -1,0 +1,9 @@
+redis-1  | 1:M 12 Sep 2026 17:29:59.987 * 100 changes in 300 seconds. Saving...
+redis-1  | 1:M 12 Sep 2026 17:29:59.988 * Background saving started by pid 1034
+redis-1  | 1034:C 12 Sep 2026 17:29:59.992 * DB saved on disk
+redis-1  | 1034:C 12 Sep 2026 17:29:59.993 * Fork CoW for RDB: current 0 MB, peak 0 MB, average 0 MB
+redis-1  | 1:M 12 Sep 2026 17:30:00.088 * Background saving terminated with success
+checkout-nginx-1  | 172.20.0.13 - - [12/Sep/2026:17:30:02 +0000] "POST /api/purchases HTTP/1.1" 201 261 "-" "k6/0.54.0 (https://k6.io/)"
+checkout-nginx-1  | 172.20.0.13 - - [12/Sep/2026:17:30:05 +0000] "POST /api/orders/4d170236-1b9e-4f56-941e-f70bd77a0b8b/payments HTTP/1.1" 202 96 "-" "k6/0.54.0 (https://k6.io/)"
+nginx-1           | 172.20.0.13 - - [12/Sep/2026:17:30:00 +0000] "POST /api/admissions HTTP/1.1" 202 157 "-" "k6/0.54.0 (https://k6.io/)"
+nginx-1           | 172.20.0.13 - - [12/Sep/2026:17:30:01 +0000] "GET /api/admissions/ec693aea4ba990061597256164ee46f2218d32d2de63e1c4ed7f79e8701fb33c HTTP/1.1" 200 568 "-" "k6/0.54.0 (https://k6.io/)"

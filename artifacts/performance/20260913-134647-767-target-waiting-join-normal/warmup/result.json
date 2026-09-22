@@ -1,0 +1,57 @@
+{
+  "automatedChecksPassed": true,
+  "warmupWindows": [
+    {
+      "stage": "warmup_3",
+      "backlog": [
+        {
+          "at": "2026-09-13T13:50:17.548601+09:00",
+          "pending": 2,
+          "oldestPendingSeconds": 0.095267
+        },
+        {
+          "at": "2026-09-13T13:50:23.18352+09:00",
+          "pending": 1,
+          "oldestPendingSeconds": 0.100734
+        }
+      ],
+      "p95": 22.356273,
+      "p99": 97.599153,
+      "httpSamples": 462
+    },
+    {
+      "stage": "warmup_4",
+      "backlog": [
+        {
+          "at": "2026-09-13T13:50:28.796068+09:00",
+          "pending": 0,
+          "oldestPendingSeconds": 0
+        },
+        {
+          "at": "2026-09-13T13:50:34.589385+09:00",
+          "pending": 3,
+          "oldestPendingSeconds": 0.111873
+        }
+      ],
+      "p95": 39.182668,
+      "p99": 95.754255,
+      "httpSamples": 461
+    }
+  ],
+  "saleAlignmentSeconds": null,
+  "capacity": {
+    "sampleSeconds": 33.984852,
+    "acceptedPerSecond": 7.003120095976879,
+    "maxOldestSeconds": 0.111873,
+    "backlogSlope": 0.05884974870568806,
+    "confirmedPerSecond": 6.944270347271191,
+    "maxPending": 3.0
+  },
+  "status": "passed",
+  "manualReview": [
+    "Inspect per-endpoint/status p95/p99, 429/503, READY versus actual purchase rate, Redis latency/CPU, DB lock/Hikari and generator resources.",
+    "Sustained capacity needs stable backlog/age within the supply window and 3 independent trials; drain alone is insufficient. Worker contract is SUCCESS confirmation deadlines and recovering backlog, not fixed jobs/s.",
+    "For return/late/PG scenarios inspect timeline and state samples. Sampled projection timing is not an exact release-event timestamp; do not certify <=5s from coarse samples."
+  ],
+  "issues": []
+}

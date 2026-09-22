@@ -1,0 +1,19 @@
+{
+  "scriptPath": "waiting-v2/unused-ready.js",
+  "reservationRate": 25,
+  "runId": "9da3692b4c374caf8c378f87d724d580",
+  "seed": 20260911,
+  "waitingRate": 25,
+  "rps": 25,
+  "mockPgDelayMs": 0,
+  "stock": 1000,
+  "reset": true,
+  "scenario": "waiting",
+  "maxVus": 2000,
+  "paymentRps": 40,
+  "permits": 8,
+  "vus": 200,
+  "durationSeconds": 60,
+  "users": 50000,
+  "variant": "normal"
+}

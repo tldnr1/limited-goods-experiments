@@ -1,0 +1,8 @@
+Exception: D:\Code\limited-goods-reservation\ops\performance\target-trial.ps1:166
+Line |
+ 166 |  … /collection-errors.txt")) { throw "실행/수집 실패. $directory 자료를 확인하세요." }
+     |                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~에서
+     | 실행/수집 실패.
+     | D:\Code\limited-goods-reservation\artifacts\performance\20260913-153316-036-target-waiting-normal 자료를 확인하세요.
+
+

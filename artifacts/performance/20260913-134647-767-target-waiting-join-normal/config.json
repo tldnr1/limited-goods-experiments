@@ -1,0 +1,19 @@
+{
+  "stock": 1000,
+  "variant": "normal",
+  "paymentRps": 40,
+  "runId": "c8eb0e14c88b4c72acb483eab5dca44c",
+  "seed": 20260911,
+  "vus": 200,
+  "waitingRate": 25,
+  "permits": 8,
+  "durationSeconds": 60,
+  "users": 50000,
+  "rps": 100,
+  "scriptPath": "waiting-v2/join.js",
+  "maxVus": 200,
+  "reservationRate": 25,
+  "scenario": "waiting-join",
+  "mockPgDelayMs": 0,
+  "reset": true
+}

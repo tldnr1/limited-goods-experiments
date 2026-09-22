@@ -1,0 +1,39 @@
+
+         /\      Grafana   /?얄?  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ?얄? 
+  /          \   |   (  |  (??  |
+ / __________ \  |_|\_\  \_____/ 
+
+     execution: local
+        script: /scripts/priming.js
+        output: json (/results/raw.json)
+
+     scenarios: (100.00%) 1 scenario, 1 max VUs, 3m0s max duration (incl. graceful stop):
+              * priming: 1 iterations shared among 1 VUs (maxDuration: 3m0s, exec: buyPay)
+
+time="2026-09-13T06:36:03Z" level=info msg="TARGET_MEASUREMENT_START=1789281363682" source=console
+
+running (0m01.0s), 1/1 VUs, 0 complete and 0 interrupted iterations
+priming   [   0% ] 1 VUs  0m01.0s/3m0s  0/1 shared iters
+
+running (0m02.0s), 1/1 VUs, 0 complete and 0 interrupted iterations
+priming   [   0% ] 1 VUs  0m02.0s/3m0s  0/1 shared iters
+
+running (0m03.0s), 1/1 VUs, 0 complete and 0 interrupted iterations
+priming   [   0% ] 1 VUs  0m03.0s/3m0s  0/1 shared iters
+
+running (0m04.0s), 1/1 VUs, 0 complete and 0 interrupted iterations
+priming   [   0% ] 1 VUs  0m04.0s/3m0s  0/1 shared iters
+
+running (0m05.0s), 1/1 VUs, 0 complete and 0 interrupted iterations
+priming   [   0% ] 1 VUs  0m05.0s/3m0s  0/1 shared iters
+
+running (0m06.0s), 1/1 VUs, 0 complete and 0 interrupted iterations
+priming   [   0% ] 1 VUs  0m06.0s/3m0s  0/1 shared iters
+
+running (0m07.0s), 1/1 VUs, 0 complete and 0 interrupted iterations
+priming   [   0% ] 1 VUs  0m07.0s/3m0s  0/1 shared iters
+
+running (0m07.7s), 0/1 VUs, 1 complete and 0 interrupted iterations
+priming ??[ 100% ] 1 VUs  0m07.7s/3m0s  1/1 shared iters

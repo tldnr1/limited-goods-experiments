@@ -1,7 +1,7 @@
 # Target v1 — 기능 계약과 검증 범위
 
 기능 결과: [2026-09-10 기능 검증](../../artifacts/target-v1/20260910-functional/review.md).
-최신 부하 결과: [2026-09-12 첫 Warmup 실패](../reviews/warmup-20260912-review.md). 수정 후 재실행과 steady-state 성능 검증은 대기 중이다.
+최신 부하 결과: [2026-09-13 사전 거래 추가 후 Warmup 통과](../reviews/warmup-20260913-review.md). 다음은 Worker 측정이며 steady-state 성능 검증은 대기 중이다.
 
 대량 유입을 Waiting/READY에서 흡수해 PostgreSQL 재고 경로의 진입률을 통제하고,
 재고 점유는 PostgreSQL 원장으로 정확하게 보장하며, 결제는 durable acceptance 이후 Worker가 비동기로 처리하여
@@ -14,7 +14,7 @@ Primary performance SLO는 **warmup 이후 steady-state**와 선언한 resource 
 Target `Run -Reset`은 재기동 후 단계형 warmup을 검증하고 데이터를 정리한 뒤 같은 JVM에서 본 측정을 시작한다. 이전 자동 warmup 없는 결과는 steady-state SLO 증거로 사용하지 않는다.
 Cold-start 결과는 deployment/startup characteristic으로 보존하고 steady-state capacity와 별도로 기록한다.
 DB/OS 캐시는 남을 수 있으므로 완전히 cold한 환경이라는 뜻은 아니다. 동일 비교 시험은 동일한 warmup/reset 조건을 사용한다.
-단계형 warmup/독립 Validation, 202 accepted-only metric, terminal timestamp/deadline evidence, configurable Mock PG delay를 구현했다. 실제 실패 실행은 있지만 새 warmup PASS 및 steady-state 성능 달성은 미검증이다.
+단계형 warmup/독립 Validation, 202 accepted-only metric, terminal timestamp/deadline evidence, configurable Mock PG delay를 구현했다. 사전 거래를 추가한 warmup은 1회 PASS했으며 steady-state 성능 달성은 미검증이다.
 
 ### 대표 workload와 hard correctness
 

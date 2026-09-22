@@ -1,0 +1,33 @@
+{
+  "saleAlignmentSeconds": null,
+  "issues": [
+    "k6 exited nonzero",
+    "Missing/failed threshold: target_unexpected: rate<=0.001",
+    "Missing/failed threshold: target_unexpected{endpoint:waiting_poll}: rate==0",
+    "Missing/failed threshold: target_latency{endpoint:waiting_join}: p(99)<=1000",
+    "Missing/failed threshold: target_latency{endpoint:waiting_poll}: p(99)<=1000",
+    "Missing/failed threshold: target_unexpected{endpoint:waiting_join}: rate==0",
+    "target_unexpected{endpoint:waiting_join}: rate==0",
+    "target_latency{endpoint:waiting_poll}: p(99)<=1000",
+    "target_unexpected{endpoint:waiting_poll}: rate==0",
+    "target_unexpected: rate<=0.001",
+    "target_latency{endpoint:waiting_join}: p(99)<=1000",
+    "Scrape failure: api1:8080"
+  ],
+  "status": "failed",
+  "automatedChecksPassed": false,
+  "manualReview": [
+    "Inspect per-endpoint/status p95/p99, 429/503, READY versus actual purchase rate, Redis latency/CPU, DB lock/Hikari and generator resources.",
+    "Sustained capacity needs stable backlog/age within the supply window and 3 independent trials; drain alone is insufficient. Worker contract is SUCCESS confirmation deadlines and recovering backlog, not fixed jobs/s.",
+    "For return/late/PG scenarios inspect timeline and state samples. Sampled projection timing is not an exact release-event timestamp; do not certify <=5s from coarse samples."
+  ],
+  "capacity": {
+    "acceptedPerSecond": 0.0,
+    "backlogSlope": 0.0,
+    "sampleSeconds": 57.99675,
+    "confirmedPerSecond": 0.0,
+    "maxOldestSeconds": 0.0,
+    "maxPending": 0.0
+  },
+  "warmupWindows": []
+}

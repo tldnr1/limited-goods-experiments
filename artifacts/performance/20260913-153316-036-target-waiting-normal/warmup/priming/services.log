@@ -1,0 +1,4 @@
+checkout-nginx-1  | 172.20.0.13 - - [13/Sep/2026:06:36:06 +0000] "POST /api/purchases HTTP/1.1" 201 261 "-" "k6/0.54.0 (https://k6.io/)"
+checkout-nginx-1  | 172.20.0.13 - - [13/Sep/2026:06:36:11 +0000] "POST /api/orders/fc8c90c3-4d88-4b51-af17-7af8350dd1d9/payments HTTP/1.1" 202 96 "-" "k6/0.54.0 (https://k6.io/)"
+nginx-1           | 172.20.0.13 - - [13/Sep/2026:06:36:04 +0000] "POST /api/admissions HTTP/1.1" 202 157 "-" "k6/0.54.0 (https://k6.io/)"
+nginx-1           | 172.20.0.13 - - [13/Sep/2026:06:36:05 +0000] "GET /api/admissions/16b070e2e164bdeb0af5409629d42416e631d025dd21935ac2aadf85871efbd5 HTTP/1.1" 200 568 "-" "k6/0.54.0 (https://k6.io/)"

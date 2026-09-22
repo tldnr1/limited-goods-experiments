@@ -1,0 +1,25 @@
+{
+  "status": "failed",
+  "capacity": {
+    "acceptedPerSecond": 0.0,
+    "sampleSeconds": 48.77512,
+    "maxOldestSeconds": 0.0,
+    "maxPending": 0.0,
+    "backlogSlope": 0.0,
+    "confirmedPerSecond": 0.0
+  },
+  "saleAlignmentSeconds": null,
+  "manualReview": [
+    "Inspect per-endpoint/status p95/p99, 429/503, READY versus actual purchase rate, Redis latency/CPU, DB lock/Hikari and generator resources.",
+    "Sustained capacity needs stable backlog/age within the supply window and 3 independent trials; drain alone is insufficient. Worker contract is SUCCESS confirmation deadlines and recovering backlog, not fixed jobs/s.",
+    "For return/late/PG scenarios inspect timeline and state samples. Sampled projection timing is not an exact release-event timestamp; do not certify <=5s from coarse samples."
+  ],
+  "issues": [
+    "k6 exited nonzero",
+    "Missing/failed threshold: dropped_iterations: count==0",
+    "dropped_iterations: count==0",
+    "Actual arrivals differ from configured workload: expected=1500..1501, started=1000"
+  ],
+  "warmupWindows": [],
+  "automatedChecksPassed": false
+}

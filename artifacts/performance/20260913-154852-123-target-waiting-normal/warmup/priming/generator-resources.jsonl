@@ -1,0 +1,1 @@
+{"at":"2026-09-13T06:51:36.4956277+00:00","container":{"BlockIO":"0B / 0B","CPUPerc":"0.75%","Container":"1e155fea08a1","ID":"1e155fea08a1","MemPerc":"1.02%","MemUsage":"10.44MiB / 1GiB","Name":"goods-target-warmup-k6","NetIO":"2.85kB / 2.38kB","PIDs":"14"}}

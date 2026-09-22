@@ -4,13 +4,14 @@
 
 2026-09-13 변경: 정상 거래 한 건을 별도 priming으로 실행·확정·정리한 뒤 기존 2→5→10→10/s warmup을 수행한다.
 CPU/pool/JIT는 유지하며 사전 실행 유무의 비교가 목적이다. 원본은 priming/에 분리하고,
-완료/cleanup은 실제 시작 수와 영속 상태를 대조한다. 변경 후 실제 실행은 아직 하지 않았다.
+완료/cleanup은 실제 시작 수와 영속 상태를 대조한다. [사전 거래 추가 후 실행](reviews/warmup-20260913-review.md)은
+272/272건 확정, Payment Hikari timeout 0건으로 통과했다. 다음은 기존 Worker 10/s·120초 측정이다.
 Git Bash 명령은 [Stage 0 실행 가이드](guides/target-v1-load-guide.md#stage-0과-embedded-warmup)를 따른다.
 
-최신 실행은 `20260912-223508-886-target-warmup-normal`이며 실제 시작 273건, 확정 262건, Payment Hikari timeout 13건으로 실패했다.
+변경 전 `20260912-223508-886-target-warmup-normal`은 실제 시작 273건, 확정 262건, Payment Hikari timeout 13건으로 실패했다.
 이전 [2026-09-12 첫 Warmup](reviews/warmup-20260912-review.md)은 실제 272회 도착·완료,
 dropped=0이었으나 Payment Hikari timeout 18건과 결제 오류로 실패했다. 고정 270건 판정과 cleanup은
-실제 시작 수 기준으로 수정했으며, 수정 후 재실행 및 warmup PASS 이후 steady-state 성능 검증은 대기 중이다.
+실제 시작 수 기준으로 수정했다. Warmup PASS 이후 steady-state 성능 검증은 대기 중이다.
 도착 수는 각 constant-arrival-rate 시나리오의 추가 1회만 허용하고 실제 시작 수 전체의 영속 완료를 요구한다.
 Hikari는 trial별 fresh boundary delta, process restart는 Prometheus window와 컨테이너 evidence로 검사한다.
 전체 문서 구성은 [목차](README.md), 실행별 기록은 [분석 목록](reviews/README.md)을 따른다.
@@ -37,7 +38,7 @@ Primary performance SLO는 warmup 이후 steady-state 기준이다. Target Run -
 데이터 정리 후 동일 JVM에서 측정한다. 이전 자동 warmup 없는 결과는 steady-state 증거로 쓰지 않는다. Cold-start 결과도 deployment/startup characteristic으로
 보존하고 steady-state capacity와 별도로 기록한다. DB/OS 캐시가 남을 수 있으며 동일 비교 시험은 동일한 warmup/reset 조건을 사용한다.
 단계형 warmup/Validation, MockPgDelayMs(기본 0, 0~5000ms), 202 accepted-only metric, terminal_at/deadline evidence와 saleStart 판정을 구현했다.
-혼합 `target_payment_ms`는 진단용이며 review의 legacy 32/40 처리율 요구를 제거했다. 실제 Target 실행 이력은 있지만 새 Stage 0 PASS와 steady-state 성능 달성은 아직 없다.
+혼합 `target_payment_ms`는 진단용이며 review의 legacy 32/40 처리율 요구를 제거했다. 사전 거래를 추가한 Stage 0은 1회 PASS했으며 steady-state 성능 달성은 아직 미검증이다.
 
 ## Baseline 실행 이력의 범위
 

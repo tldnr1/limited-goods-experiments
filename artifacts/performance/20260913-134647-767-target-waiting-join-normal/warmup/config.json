@@ -1,0 +1,38 @@
+{
+  "stock": 400,
+  "variant": "normal",
+  "paymentRps": 40,
+  "runId": "c8eb0e14c88b4c72acb483eab5dca44c-warmup",
+  "seed": 20260911,
+  "vus": 40,
+  "waitingRate": 25,
+  "permits": 8,
+  "durationSeconds": 40.0,
+  "warmupStages": [
+    {
+      "durationSeconds": 10,
+      "rate": 2
+    },
+    {
+      "durationSeconds": 10,
+      "rate": 5
+    },
+    {
+      "durationSeconds": 10,
+      "rate": 10
+    },
+    {
+      "durationSeconds": 10,
+      "rate": 10
+    }
+  ],
+  "users": 270.0,
+  "rps": 10,
+  "primed": true,
+  "scriptPath": "warmup.js",
+  "maxVus": 40,
+  "reservationRate": 25,
+  "scenario": "warmup",
+  "mockPgDelayMs": 0,
+  "reset": true
+}

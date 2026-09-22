@@ -1,0 +1,19 @@
+{
+  "sale": {
+    "id": "2f7ab328-5ade-4ba7-b2d6-c6cd05ec2c89",
+    "name": "target-a8143ac93e164e25a46e7b89526fa804-warmup",
+    "opensAt": "2026-09-13T02:29:08.336346300Z",
+    "items": [
+      {
+        "id": "2a57de1b-e7f4-4937-b3d0-a123152f48a7",
+        "name": "goods",
+        "price": 10000,
+        "perUserLimit": 1,
+        "total": 400,
+        "available": 400,
+        "held": 0,
+        "sold": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,455 @@
+name: limited-goods-java
+services:
+  api1:
+    build:
+      context: D:\Code\limited-goods-reservation
+      dockerfile: Dockerfile
+    cpus: 0.375
+    depends_on:
+      redis:
+        condition: service_healthy
+        required: true
+    environment:
+      ADMISSION_ENABLED: "true"
+      APP_INSTANCE: api1
+      APP_WAITING_RATE: "25"
+      DB_PASSWORD: local-only
+      DB_POOL_SIZE: "8"
+      DB_URL: jdbc:postgresql://postgres:5432/limited_goods_perf
+      DB_USER: goods
+      HTTP_CONNECTIONS: "256"
+      HTTP_THREADS: "24"
+      PG_SECRET: local-pg-secret
+      PG_URL: http://mock-pg:8080
+      PURCHASE_TIMING_LOG_LEVEL: "OFF"
+      REDIS_HOST: redis
+      REDIS_NAMESPACE: 'goods:perf:'
+      REDIS_PORT: "6379"
+      SPRING_PROFILES_ACTIVE: waiting
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --max-time
+        - "2"
+        - http://127.0.0.1:8080/actuator/health/readiness
+      timeout: 3s
+      interval: 5s
+      retries: 6
+      start_period: 1m30s
+    image: limited-goods-java:local
+    mem_limit: "402653184"
+    networks:
+      default: null
+    restart: "no"
+  api2:
+    build:
+      context: D:\Code\limited-goods-reservation
+      dockerfile: Dockerfile
+    cpus: 0.375
+    depends_on:
+      redis:
+        condition: service_healthy
+        required: true
+    environment:
+      ADMISSION_ENABLED: "true"
+      APP_INSTANCE: api2
+      APP_WAITING_RATE: "25"
+      DB_PASSWORD: local-only
+      DB_POOL_SIZE: "8"
+      DB_URL: jdbc:postgresql://postgres:5432/limited_goods_perf
+      DB_USER: goods
+      HTTP_CONNECTIONS: "256"
+      HTTP_THREADS: "24"
+      PG_SECRET: local-pg-secret
+      PG_URL: http://mock-pg:8080
+      PURCHASE_TIMING_LOG_LEVEL: "OFF"
+      REDIS_HOST: redis
+      REDIS_NAMESPACE: 'goods:perf:'
+      REDIS_PORT: "6379"
+      SPRING_PROFILES_ACTIVE: waiting
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --max-time
+        - "2"
+        - http://127.0.0.1:8080/actuator/health/readiness
+      timeout: 3s
+      interval: 5s
+      retries: 6
+      start_period: 1m30s
+    image: limited-goods-java:local
+    mem_limit: "402653184"
+    networks:
+      default: null
+    restart: "no"
+  checkout-nginx:
+    cpus: 0.125
+    depends_on:
+      payment:
+        condition: service_healthy
+        required: true
+      reservation:
+        condition: service_healthy
+        required: true
+      worker:
+        condition: service_healthy
+        required: true
+    image: nginx:1.28-alpine
+    mem_limit: "67108864"
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 80
+        published: "8082"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: D:\Code\limited-goods-reservation\ops\nginx-checkout.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+        bind: {}
+  mock-pg:
+    build:
+      context: D:\Code\limited-goods-reservation
+      dockerfile: Dockerfile
+    cpus: 0.25
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      ADMISSION_ENABLED: "true"
+      APP_INSTANCE: mock-pg
+      DB_PASSWORD: local-only
+      DB_POOL_SIZE: "2"
+      DB_URL: jdbc:postgresql://postgres:5432/limited_goods_perf
+      DB_USER: goods
+      MOCK_PG_DELAY_MS: "0"
+      PG_SECRET: local-pg-secret
+      PG_URL: http://mock-pg:8080
+      PURCHASE_TIMING_LOG_LEVEL: "OFF"
+      REDIS_HOST: redis
+      REDIS_NAMESPACE: 'goods:perf:'
+      REDIS_PORT: "6379"
+      SPRING_PROFILES_ACTIVE: mockpg
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --max-time
+        - "2"
+        - http://127.0.0.1:8080/actuator/health/readiness
+      timeout: 3s
+      interval: 5s
+      retries: 6
+      start_period: 1m30s
+    image: limited-goods-java:local
+    mem_limit: "402653184"
+    networks:
+      default: null
+    restart: "no"
+  nginx:
+    cpus: 0.125
+    depends_on:
+      api1:
+        condition: service_healthy
+        required: true
+      api2:
+        condition: service_healthy
+        required: true
+    image: nginx:1.28-alpine
+    mem_limit: "67108864"
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 80
+        published: "8080"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: D:\Code\limited-goods-reservation\ops\nginx-waiting.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+        bind: {}
+  payment:
+    build:
+      context: D:\Code\limited-goods-reservation
+      dockerfile: Dockerfile
+    cpus: 0.25
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
+      reservation:
+        condition: service_healthy
+        required: true
+    environment:
+      ADMISSION_ENABLED: "true"
+      APP_INSTANCE: payment
+      DB_PASSWORD: local-only
+      DB_POOL_SIZE: "4"
+      DB_URL: jdbc:postgresql://postgres:5432/limited_goods_perf
+      DB_USER: goods
+      HTTP_BACKLOG: "16"
+      HTTP_CONNECTIONS: "64"
+      HTTP_THREADS: "16"
+      PG_SECRET: local-pg-secret
+      PG_URL: http://mock-pg:8080
+      PURCHASE_TIMING_LOG_LEVEL: "OFF"
+      REDIS_HOST: redis
+      REDIS_NAMESPACE: 'goods:perf:'
+      REDIS_PORT: "6379"
+      SPRING_PROFILES_ACTIVE: payment
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --max-time
+        - "2"
+        - http://127.0.0.1:8080/actuator/health/readiness
+      timeout: 3s
+      interval: 5s
+      retries: 6
+      start_period: 1m30s
+    image: limited-goods-java:local
+    mem_limit: "402653184"
+    networks:
+      default: null
+    restart: "no"
+  postgres:
+    cpus: 1.5
+    environment:
+      POSTGRES_DB: limited_goods_dev
+      POSTGRES_PASSWORD: local-only
+      POSTGRES_USER: goods
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U goods -d limited_goods_dev
+      timeout: 2s
+      interval: 2s
+      retries: 30
+    image: postgres:16-alpine
+    mem_limit: "1610612736"
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 5432
+        published: "5433"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: java-postgres
+        target: /var/lib/postgresql/data
+        volume: {}
+      - type: bind
+        source: D:\Code\limited-goods-reservation\ops\postgres\init.sql
+        target: /docker-entrypoint-initdb.d/01-init.sql
+        read_only: true
+        bind: {}
+  prometheus:
+    profiles:
+      - observe
+    cpus: 0.25
+    image: prom/prometheus:v2.55.1
+    mem_limit: "268435456"
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 9090
+        published: "9090"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: D:\Code\limited-goods-reservation\ops\performance\target-prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+        read_only: true
+        bind: {}
+  redis:
+    cpus: 0.25
+    command:
+      - redis-server
+      - --maxmemory
+      - 192mb
+      - --maxmemory-policy
+      - noeviction
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      timeout: 2s
+      interval: 2s
+      retries: 30
+    image: redis:7-alpine
+    mem_limit: "268435456"
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 6379
+        published: "6380"
+        protocol: tcp
+  reservation:
+    build:
+      context: D:\Code\limited-goods-reservation
+      dockerfile: Dockerfile
+    cpus: 0.5
+    depends_on:
+      mock-pg:
+        condition: service_healthy
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+    environment:
+      ADMISSION_ENABLED: "true"
+      ADMISSION_PERMITS: "8"
+      APP_INSTANCE: reservation
+      DB_PASSWORD: local-only
+      DB_POOL_SIZE: "4"
+      DB_URL: jdbc:postgresql://postgres:5432/limited_goods_perf
+      DB_USER: goods
+      HTTP_BACKLOG: "16"
+      HTTP_CONNECTIONS: "64"
+      HTTP_THREADS: "16"
+      PG_SECRET: local-pg-secret
+      PG_URL: http://mock-pg:8080
+      PURCHASE_TIMING_LOG_LEVEL: "OFF"
+      REDIS_HOST: redis
+      REDIS_NAMESPACE: 'goods:perf:'
+      REDIS_PORT: "6379"
+      RESERVATION_RATE: "25"
+      SPRING_PROFILES_ACTIVE: reservation
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --max-time
+        - "2"
+        - http://127.0.0.1:8080/actuator/health/readiness
+      timeout: 3s
+      interval: 5s
+      retries: 6
+      start_period: 1m30s
+    image: limited-goods-java:local
+    mem_limit: "536870912"
+    networks:
+      default: null
+    restart: "no"
+  worker:
+    build:
+      context: D:\Code\limited-goods-reservation
+      dockerfile: Dockerfile
+    cpus: 0.5
+    depends_on:
+      mock-pg:
+        condition: service_healthy
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+      reservation:
+        condition: service_healthy
+        required: true
+    environment:
+      ADMISSION_ENABLED: "true"
+      APP_INSTANCE: worker
+      DB_PASSWORD: local-only
+      DB_POOL_SIZE: "4"
+      DB_URL: jdbc:postgresql://postgres:5432/limited_goods_perf
+      DB_USER: goods
+      PG_SECRET: local-pg-secret
+      PG_URL: http://mock-pg:8080
+      PURCHASE_TIMING_LOG_LEVEL: "OFF"
+      REDIS_HOST: redis
+      REDIS_NAMESPACE: 'goods:perf:'
+      REDIS_PORT: "6379"
+      SPRING_APPLICATION_JSON: '{"management":{"metrics":{"distribution":{"percentiles-histogram":{"goods.worker.job":true,"goods.worker.pg":true}}}}}'
+      SPRING_PROFILES_ACTIVE: worker
+      WORKER_CONCURRENCY: "4"
+      WORKER_ENABLED: "true"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --max-time
+        - "2"
+        - http://127.0.0.1:8080/actuator/health/readiness
+      timeout: 3s
+      interval: 5s
+      retries: 6
+      start_period: 1m30s
+    image: limited-goods-java:local
+    mem_limit: "536870912"
+    networks:
+      default: null
+    restart: "no"
+networks:
+  default:
+    name: limited-goods-java_default
+volumes:
+  java-postgres:
+    name: limited-goods-java_java-postgres
+x-app:
+  build: .
+  cpus: 0.75
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  environment:
+    ADMISSION_ENABLED: "true"
+    DB_PASSWORD: local-only
+    DB_POOL_SIZE: 8
+    DB_URL: jdbc:postgresql://postgres:5432/limited_goods_perf
+    DB_USER: goods
+    PG_SECRET: local-pg-secret
+    PG_URL: http://mock-pg:8080
+    PURCHASE_TIMING_LOG_LEVEL: "OFF"
+    REDIS_HOST: redis
+    REDIS_NAMESPACE: 'goods:perf:'
+    REDIS_PORT: 6379
+  healthcheck:
+    interval: 5s
+    retries: 6
+    start_period: 90s
+    test:
+      - CMD
+      - curl
+      - --fail
+      - --silent
+      - --max-time
+      - "2"
+      - http://127.0.0.1:8080/actuator/health/readiness
+    timeout: 3s
+  image: limited-goods-java:local
+  mem_limit: 768m
+  restart: "no"

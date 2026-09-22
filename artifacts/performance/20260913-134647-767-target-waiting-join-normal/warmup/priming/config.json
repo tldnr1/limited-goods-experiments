@@ -1,0 +1,20 @@
+{
+  "stock": 1,
+  "variant": "normal",
+  "paymentRps": 40,
+  "runId": "c8eb0e14c88b4c72acb483eab5dca44c-priming",
+  "seed": 20260911,
+  "vus": 1,
+  "waitingRate": 25,
+  "permits": 8,
+  "durationSeconds": 180,
+  "users": 1,
+  "rps": 100,
+  "iterations": 1,
+  "scriptPath": "priming.js",
+  "maxVus": 1,
+  "reservationRate": 25,
+  "scenario": "priming",
+  "mockPgDelayMs": 0,
+  "reset": true
+}

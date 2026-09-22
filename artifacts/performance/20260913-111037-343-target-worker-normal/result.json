@@ -1,0 +1,20 @@
+{
+  "automatedChecksPassed": true,
+  "capacity": {
+    "acceptedPerSecond": 9.999615785993111,
+    "maxPending": 2.0,
+    "maxOldestSeconds": 0.213836,
+    "confirmedPerSecond": 9.999615785993111,
+    "backlogSlope": 0.0,
+    "sampleSeconds": 115.404434
+  },
+  "saleAlignmentSeconds": null,
+  "manualReview": [
+    "Inspect per-endpoint/status p95/p99, 429/503, READY versus actual purchase rate, Redis latency/CPU, DB lock/Hikari and generator resources.",
+    "Sustained capacity needs stable backlog/age within the supply window and 3 independent trials; drain alone is insufficient. Worker contract is SUCCESS confirmation deadlines and recovering backlog, not fixed jobs/s.",
+    "For return/late/PG scenarios inspect timeline and state samples. Sampled projection timing is not an exact release-event timestamp; do not certify <=5s from coarse samples."
+  ],
+  "issues": [],
+  "status": "requires_review",
+  "warmupWindows": []
+}

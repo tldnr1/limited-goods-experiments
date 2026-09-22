@@ -1,0 +1,38 @@
+{
+  "permits": 8,
+  "scenario": "warmup",
+  "durationSeconds": 40.0,
+  "stock": 400,
+  "reservationRate": 25,
+  "primed": true,
+  "rps": 10,
+  "variant": "normal",
+  "waitingRate": 25,
+  "runId": "305176d2a5bb4e9ab59d8e95297a333d-warmup",
+  "reset": true,
+  "scriptPath": "warmup.js",
+  "seed": 20260911,
+  "mockPgDelayMs": 0,
+  "users": 270.0,
+  "paymentRps": 40,
+  "warmupStages": [
+    {
+      "rate": 2,
+      "durationSeconds": 10
+    },
+    {
+      "rate": 5,
+      "durationSeconds": 10
+    },
+    {
+      "rate": 10,
+      "durationSeconds": 10
+    },
+    {
+      "rate": 10,
+      "durationSeconds": 10
+    }
+  ],
+  "maxVus": 40,
+  "vus": 40
+}
