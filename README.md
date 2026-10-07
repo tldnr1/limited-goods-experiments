@@ -1,11 +1,14 @@
 # Limited Goods — Java 기준 구현
 
+> **보관용 저장소입니다.** 2026년 6~9월의 실험을 보관하며 더 이상 개발하지 않습니다.
+> 새 프로젝트는 [tldnr1/limited-goods](https://github.com/tldnr1/limited-goods)에서 진행합니다.
+>
+> - `archive/java-spring-v3.2`: 재고 처리 방식(조건부 UPDATE, 비관적 락, Redis Lua) 비교와 Redis·DB 불일치 실험. 가장 완결된 기록입니다.
+> - `main`: 아래 target-v1 구현과 부하 측정 시도. 측정은 완료되지 않았습니다.
+> - Python 기준선은 별도 브랜치 없이 main 이력의 `32ece7d` 커밋에 남아 있습니다.
+
 한정 굿즈의 다중 상품 점유, 멱등 구매, 비동기 결제, 만료·재고 반환을 Java 21 / Spring Boot로 구현했다.
 PostgreSQL이 재고의 기준 상태를 보관하며, 선택적으로 Redis Lua 진입 제한과 짧은 재고 소진 캐시를 사용한다.
-
-- main: 새 Java 구현
-- archive/python-fastapi-baseline: Python 구현과 당시 미커밋 실험/notes/uv.lock 보존
-- archive/java-spring-v3.2: 기존 Java archive 유지
 
 이전 성능 결과는 archive에 있다. 새 Java 구현의 성능으로 인용하지 않는다.
 
